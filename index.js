@@ -25,48 +25,70 @@ class TotalplayAccessory {
         let services = [];
 
         // Configure HomeKit TV Device Information
-        let deviceInformation = new Service.AccessoryInformation();
+        this.deviceInformation = new Service.AccessoryInformation();
 
-        deviceInformation.setCharacteristic(Characteristic.Manufacturer, "Totalplay")
+        this.deviceInformation.setCharacteristic(Characteristic.Manufacturer, "Totalplay")
             .setCharacteristic(Characteristic.SerialNumber, "Unknown")
             .setCharacteristic(Characteristic.Model, "Unknown");
 
         // Configure HomeKit TV Accessory
-        let tvService = new Service.Television(this.name, "Television");
+        this.tvService = new Service.Television(this.name, "Television");
 
-        tvService.getCharacteristic(Characteristic.Active)
+        this.tvService.getCharacteristic(Characteristic.Active)
             .on("get", this.getActive.bind(this))
             .on("set", this.setActive.bind(this));
 
-        tvService.getCharacteristic(Characteristic.ActiveIdentifier)
+        this.tvService.getCharacteristic(Characteristic.ActiveIdentifier)
             .on("get", this.getInput.bind(this))
             .on("set", this.setInput.bind(this));
 
-        tvService.setCharacteristic(Characteristic.ConfiguredName, this.name);
-        tvService.setCharacteristic(Characteristic.SleepDiscoveryMode, Characteristic.SleepDiscoveryMode.NOT_DISCOVERABLE);
+        this.tvService.setCharacteristic(Characteristic.ConfiguredName, this.name);
+        this.tvService.setCharacteristic(Characteristic.SleepDiscoveryMode, Characteristic.SleepDiscoveryMode.NOT_DISCOVERABLE);
 
         // Configure HomeKit TV Volume Control
-        let tvSpeakerService = new Service.TelevisionSpeaker(this.name, 'TelevisionSpeaker');
-        tvSpeakerService.setCharacteristic(Characteristic.Active, Characteristic.Active.ACTIVE)
+        this.tvSpeakerService = new Service.TelevisionSpeaker(this.name, 'TelevisionSpeaker');
+        this.tvSpeakerService.setCharacteristic(Characteristic.Active, Characteristic.Active.ACTIVE)
             .setCharacteristic(Characteristic.VolumeControlType, Characteristic.VolumeControlType.RELATIVE);
 
-        tvSpeakerService.getCharacteristic(Characteristic.VolumeSelector)
+        this.tvSpeakerService.getCharacteristic(Characteristic.VolumeSelector)
             .on("set", this.setVolume.bind(this));
 
-        tvSpeakerService.getCharacteristic(Characteristic.Mute)
+        this.tvSpeakerService.getCharacteristic(Characteristic.Mute)
             .on('get', this.getMute.bind(this))
             .on('set', this.setMute.bind(this));
 
+        this.tvService.addLinkedService(this.tvSpeakerService);
 
-        services.push(deviceInformation, tvService, tvSpeakerService);
+        // Configure HomeKit TV Inputs
+        this.inputs.forEach((input, i) => {
+            if (input.type === "channel") {
+                this.log("setting up input: " + input.name);
+
+                let inputSource = new Service.InputSource(input.name, "input" + i);
+                inputSource.setCharacteristic(Characteristic.ConfiguredName, input.name)
+                    .setCharacteristic(Characteristic.InputSourceType, Characteristic.InputSourceType.APPLICATION)
+                    .setCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED)
+                    .setCharacteristic(Characteristic.CurrentVisibilityState, Characteristic.CurrentVisibilityState.SHOWN)
+                    .setCharacteristic(Characteristic.Identifier, input.channelNum);
+
+                this.tvService.addLinkedService(inputSource);
+                services.push(inputSource);
+            }
+        });
+
+        services.push(this.deviceInformation, this.tvService, this.tvSpeakerService);
         return services;
     }
 
     async sendCommand(command) {
         this.log("Sending command " + command);
         await rp("http://" + this.ipAddress + "/RemoteControl/KeyHandling/sendKey?key=" + command)
-            .catch(function (reason) {
-                //ignore
+            .catch(reason => {
+                if (reason.message === "Error: Parse Error") {
+                    // ignore
+                } else {
+                    this.log(reason);
+                }
             });
     }
 
@@ -115,12 +137,16 @@ class TotalplayAccessory {
         callback(null, state);
     }
 
-    setInput() {
-
+    setInput(inputIdentifier, callback) {
+        let channel = "000000000" + inputIdentifier;
+        channel = channel.substr(channel.length - 3);
+        this.sendCommands([channel.charAt(0), channel.charAt(1), channel.charAt(2)]);
+        callback(null, inputIdentifier);
     }
 
-    getInput() {
-
+    getInput(callback) {
+        this.tvService.getCharacteristic(Characteristic.ActiveIdentifier).updateValue(0);
+        callback();
     }
 
 }
