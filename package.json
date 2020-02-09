@@ -1,6 +1,6 @@
 {
   "name": "homebridge-totalplay",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "description": "A Homebridge plugin for Totalplay's TV decoder. Written to support the new HomeKit TV accessory.",
   "main": "index.js",
   "scripts": {
