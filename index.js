@@ -39,13 +39,11 @@ class TotalplayAccessory {
             .on("set", this.setActive.bind(this));
 
         tvService.getCharacteristic(Characteristic.ActiveIdentifier)
-            .on("set", (inputIdentifier, callback) => {
-                this.setInput(callback, this.inputReferences[inputIdentifier]);
-            })
-            .on("get", this.getInput.bind(this));
+            .on("get", this.getInput.bind(this))
+            .on("set", this.setInput.bind(this));
 
         tvService.setCharacteristic(Characteristic.ConfiguredName, this.name);
-        tvService.setCharacteristic(Characteristic.SleepDiscoveryMode, Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE);
+        tvService.setCharacteristic(Characteristic.SleepDiscoveryMode, Characteristic.SleepDiscoveryMode.NOT_DISCOVERABLE);
 
         // Configure HomeKit TV Volume Control
         let tvSpeakerService = new Service.TelevisionSpeaker(this.name, 'TelevisionSpeaker');
@@ -60,7 +58,7 @@ class TotalplayAccessory {
             .on('set', this.setMute.bind(this));
 
 
-        services.push(tvService, tvSpeakerService);
+        services.push(deviceInformation, tvService, tvSpeakerService);
         return services;
     }
 
