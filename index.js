@@ -63,6 +63,7 @@ class TotalplayAccessory {
     }
 
     async sendCommand(command) {
+        this.log("Sending command " + command);
         await rp("http://" + this.ipAddress + "/RemoteControl/KeyHandling/sendKey?key=" + command)
             .catch(function (reason) {
                 //ignore
