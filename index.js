@@ -12,16 +12,16 @@ module.exports = function(homebridge) {
     homebridge.registerAccessory("homebridge-totalplay", "totalplay", TotalplayAccessory);
 };
 
-TotalplayAccessory.prototype = {
+class TotalplayAccessory {
 
-    constructor: function (log, config) {
+    constructor(log, config) {
         this.log = log;
         this.name = config.name;
         this.ipAddress = config.ipAddress;
         this.inputs = config.inputs || [];
-    },
+    };
 
-    getServices: function () {
+    getServices() {
         let services = [];
 
         // Configure HomeKit TV Device Information
@@ -46,41 +46,46 @@ TotalplayAccessory.prototype = {
 
         tvService.setCharacteristic(Characteristic.ConfiguredName, this.name);
         tvService.setCharacteristic(Characteristic.SleepDiscoveryMode, Characteristic.SleepDiscoveryMode.NOT_DISCOVERABLE);
-    },
 
-    sendCommand: async function(command) {
-        rp("http://" + this.host + "/RemoteControl/KeyHandling/sendKey?key=" + command)
+
+
+        services.push(tvService);
+        return services;
+    };
+
+    async sendCommand(command) {
+        await rp("http://" + this.ipAddress + "/RemoteControl/KeyHandling/sendKey?key=" + command)
             .catch(function (reason) {
                 //ignore
             });
-    },
+    };
 
-    sendCommands: async function(commands) {
+    async sendCommands(commands) {
         for (const command of commands) {
-            this.sendCommand(command);
+            await this.sendCommand(command);
             await new Promise (resolve => {
                 setTimeout(resolve, 200)
             })
         }
-    },
+    };
 
-    getActive: function (callback) {
+    getActive(callback) {
         if (callback) {
             callback("can not get current Power state");
         }
-    },
+    };
 
-    setActive: function (state, callback) {
+    setActive(state, callback) {
         this.sendCommand("on_off");
         callback(null, !state);
-    },
+    };
 
-    setInput: function () {
+    setInput() {
 
-    },
+    };
 
-    getInput: function () {
+    getInput() {
 
-    }
+    };
 
-};
+}
