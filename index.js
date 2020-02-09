@@ -71,7 +71,7 @@ class TotalplayAccessory {
 
     getActive(callback) {
         if (callback) {
-            callback("can not get current Power state");
+            callback(null, true);
         }
     };
 
